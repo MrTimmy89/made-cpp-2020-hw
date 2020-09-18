@@ -14,17 +14,50 @@ uint64_t convertToUint64 (double number) {
     return *((uint64_t *)(&number));
 }
 
-bool getBit (const uint64_t number, const uint8_t index) {
-    /// Your code here...
+int getBit (const uint64_t number, const uint8_t index) {
+    uint64_t mask = 1ull << index;
+    uint64_t temp = mask & number;
+    temp >>= index;
+    return temp;
 }
 
+// Checking the 63 bit to get information about the sign of the number
+bool checkSign(uint64_t number) {
+    return getBit(number, 63);
+}
+
+// Checking the bits from 52 to 62 to classify the state of this bits' group
+// Considering 3 possibilities: all ones (1), all zeros (0), none of the above(2)
+int checkExponent(uint64_t number) {
+    uint8_t i = 52;
+    int sum = 0;
+
+    while (i <= 62) {
+        sum += getBit(number, i);
+	i++;
+    }
+    
+    if (sum == 0) {
+        return 9;
+    }
+    else if (sum == 11) {
+        return 1;
+    }
+    return 2;
+}
+
+// Checking the 51 bit of the number as significant for deciding
+// if the number should be treated as a QNaN or SNaN
+bool check51(uint64_t number) {
+    return getBit(number, 51);
+}
 
 /**
  * Checkers here:
  */
 
 bool checkForPlusZero (uint64_t number) {
-    /// Your code here.
+    return number == 0x0000000000000000;
 }
 
 bool checkForMinusZero (uint64_t number) {
@@ -32,35 +65,35 @@ bool checkForMinusZero (uint64_t number) {
 }
 
 bool checkForPlusInf (uint64_t number) {
-    /// Your code here.
+    return number == 0x7FF0000000000000;
 }
 
 bool checkForMinusInf (uint64_t number) {
-    /// Your code here.
+    return number == 0xFFF0000000000000;
 }
 
 bool checkForPlusNormal (uint64_t number) {
-    /// Your code here.
+    return ((checkExponent(number) == 2) && (checkSign(number) == 0));
 }
 
 bool checkForMinusNormal (uint64_t number) {
-    /// Your code here.
+    return ((checkExponent(number) == 2) && (checkSign(number) == 1));
 }
 
 bool checkForPlusDenormal (uint64_t number) {
-    /// Your code here.
+    return ((checkExponent(number) == 0) && (checkSign(number) == 0));
 }
 
 bool checkForMinusDenormal (uint64_t number) {
-    /// Your code here.
+    return ((checkExponent(number) == 0) && (checkSign(number) == 1));
 }
 
 bool checkForSignalingNan (uint64_t number) {
-    /// Your code here.
+    return ((checkExponent(number) == 1) && (check51(number) == 0));
 }
 
 bool checkForQuietNan (uint64_t number) {
-    /// Your code here.
+    return ((checkExponent(number) == 1) && (check51(number) == 1));
 }
 
 
@@ -108,4 +141,12 @@ void classify (double number) {
     else {
         printf("Error.\n");
     }
+}
+
+int main (int argc, char *argv[]) {
+    double arg;
+    arg = strtod(argv[1], NULL);
+
+    classify(arg);
+    return 0;
 }
